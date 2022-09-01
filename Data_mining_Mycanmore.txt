@@ -1,0 +1,181 @@
+
+"""Author: Kirsty Meek (https://orcid.org/0000-0003-2314-6304) with input from Mike Middleton (https://orcid.org/0000-0001-5813-6347). 
+     Created using Python 3.8. 
+     Licenced under CC by 3.0  (https://creativecommons.org/licenses/by/3.0/)."""
+
+
+import os
+import re
+import string
+
+def main():
+
+#add the file path you wish to access here
+    path = ""
+    csv_file = ""
+    data = os.path.join(path,csv_file)
+
+    text = ""
+    with open(data, "r") as textFile:
+        text = textFile.readlines()
+
+#add the file path to the desired output folder
+    """Output Folder"""
+    outputFolder = ""
+
+    print()
+
+    ###############################################
+
+    """Set up way to break loop for testing"""
+    row = ""
+    i = 0
+    linesToRead = 10000
+
+    """Create a uniqe ID for the results"""
+    UID = 0
+
+    """Define text buffer to export on either side of the search term"""
+    textBuffer = 50
+
+    """Define search terms"""
+#Add your regular expressions to search the text in here
+    searchTerms = [""] 
+        
+    saveTerm = getSaveTerm(searchTerms)
+
+    saveFolderName = f"{saveTerm.upper()}_public_contribtions"
+    cwd = os.getcwd()
+
+    saveFolderPath = os.path.join(outputFolder, saveFolderName)
+
+    try:
+        makeNewFolder(saveFolderPath)
+    except:
+        print("Folder already exists")
+        pass
+
+    textOutput = f"{saveFolderName}.csv"
+
+    saveFile = os.path.join(saveFolderPath, textOutput)
+
+#These file.write output can be changed depending on the structure of your dataset
+    text_file = open(saveFile, "a")
+    text_file.write(f"UID@NUMLINK@EVENT_ID@BEFORE@TERM@AFTER\n")
+    text_file.close()
+
+    """Loop through database"""
+    for line in text:
+
+        if i < linesToRead:
+        
+            if (i%500 == 0):
+                print(i)
+
+            """Fetch one line in database"""
+            line_parts = line.split("@")
+
+            """Get info by field"""
+            EVENT_ID = line_parts[1]
+            NOTES = line_parts[2]
+            NUMLINK = line_parts[0]
+            
+            rawText = ""
+            try:
+                rawText = NOTES
+
+                if rawText == None:
+                    rawText = " "
+                """Make sure characters in the string are printable"""
+                rawText = ''.join([x for x in rawText if x in string.printable])
+                """Remove line returns"""
+                rawText = rawText.replace("\n", " ")
+                rawText = rawText.replace("\r", " ")
+                rawText = rawText.replace("\'", " ")
+                rawText = rawText.replace("\"", " ")
+            except:
+                print(f"Failed to process: {EVENT_ID}")
+
+
+            """Loop through searh terms"""
+            for term in searchTerms:
+
+                """Set regular expression using terms in searchTerms"""
+                pattern = re.compile(term, re.IGNORECASE)
+
+                """Find total number of hits and get the results for each hit"""
+                total = re.findall(pattern, rawText.lower())
+                results = re.finditer(pattern, rawText.lower())
+
+                """If there are no hits move on"""
+                if len(total) != 0:
+
+                    """For each hit"""
+                    for entry in results:
+
+                        """ create a uniqe ID"""
+                        UID +=1
+
+                        start_index = entry.start()-textBuffer
+                        if start_index < 0:
+                            start_index = 0
+                            
+                        end_index = entry.end()+textBuffer
+
+                        if end_index > len(rawText):
+                            end_index = len(rawText)
+
+                        BEFORE = rawText[start_index:entry.start()]
+                        TERM = rawText[entry.start():entry.end()]
+                        AFTER = rawText[entry.end():end_index]
+
+                        if BEFORE == None:
+                            BEFORE = "n/a"
+
+                        if TERM == None:
+                            BEFORE = "n/a"
+
+                        if AFTER == None:
+                            AFTER = "n/a"
+
+                        text_file = open(saveFile, "a")
+                        try:
+                            text_file.write(f"{UID}@{NUMLINK}@{EVENT_ID}@{BEFORE}@{TERM.upper()}@{AFTER}\n")
+                        except:
+                            print("##### FAILED #####")
+                            print(f"{UID}@{NUMLINK}@{EVENT_ID}@{BEFORE}@{TERM.upper()}@{AFTER}")
+                        text_file.close()
+
+        i+=1
+        """END OF LOOP"""
+
+    #########################################
+
+def makeNewFolder(newFolderPath):
+    try:
+        os.mkdir(newFolderPath)
+    except:
+        if path.exists(newFolderPath):
+            parts = newFolderPath.split("\\")
+            print(f"\t# {parts[-1]} already exists.")
+        else:
+            print(f"\t# Cound not create folder: {newFolderPath}")
+
+def getSaveTerm(searchTerms):
+
+    saveTerm = searchTerms[0]
+
+    saveTerm = saveTerm.lstrip()
+    saveTerm = saveTerm.replace("(", "")
+    saveTerm = saveTerm.replace(")", "")
+    saveTerm = saveTerm.replace("?", "")
+    saveTerm = saveTerm.replace(" ", "_")
+    saveTerm = saveTerm.replace("-", "_")
+    saveTerm = saveTerm.replace("\\b", "")
+
+    return saveTerm
+
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,161 @@
+"""Author: Kirsty Meek (https://orcid.org/0000-0003-2314-6304) with input from Mike Middleton (https://orcid.org/0000-0001-5813-6347). 
+     Created using Python 3.8. 
+     Licenced under CC by 3.0  (https://creativecommons.org/licenses/by/3.0/)."""
+
+import collections
+import os
+
+def main():
+
+    LOAD_PATH = #Add your file path you wish to load here 
+
+    text = ""
+    with open(data, "r") as textFile:
+        text = textFile.readlines()
+
+    """Output Folder"""
+    outputFolder = "" #Add your file path to the output folder you wish here
+
+    ###############################################
+
+    """Set up way to break loop for testing"""
+    row = ""
+    i = 0
+    linesToRead = 10000
+
+    """Set up master word list"""
+    master_word_list = []
+
+    """Sow text on screen"""
+    show_text = False
+
+    """Loop through database"""
+    for line in text:
+
+        if i < linesToRead:
+        
+            if (i%500 == 0):
+                print(i)
+
+            """Fetch one line in database"""
+            line_parts = line.split("@")
+
+            """Get info by field"""
+            EVENT_ID = line_parts[1]
+            NOTES = line_parts[2]
+            NUMLINK = line_parts[0]
+
+            """Load stop words"""
+            stop_list = load_stop_words()
+
+
+            """Clean text"""
+            test_text = NOTES
+            cleaned_text = clean_text(test_text)
+            clean_text_minus =  remove_stop_words(cleaned_text, stop_list)
+            master_word_list = add_to_master_list(clean_text_minus, master_word_list)
+            new_line =  reformat_text(clean_text_minus)
+            if show_text:
+                print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+                print(test_text)
+                print('\n')       
+                print(cleaned_text)
+                print('\n')
+                print(clean_text_minus)
+                print('\n')
+                print(new_line)
+
+            i+=1
+
+        #print(master_word_list)
+
+    counter=collections.Counter(master_word_list)
+
+    most_common = counter.most_common(100)
+    
+    for entry in most_common:
+        print(entry)
+
+    #### END OF MAIN ###
+
+def add_to_master_list(clean_text_minus, master_word_list):
+    for word in clean_text_minus:
+        master_word_list.append(word)
+    return master_word_list
+
+
+def load_stop_words():
+    """Load stop words"""
+    folder_path = ""#add your filepath to Stop words
+    stop_words_file = "stop_words_master.txt"
+    added_stop_words_file = "added_stop_words.txt"
+
+    stop_words_path = os.path.join(folder_path, stop_words_file)
+    added_stop_words_path = os.path.join(folder_path, added_stop_words_file)
+
+    stop_list = []
+
+    with open(stop_words_path, 'r') as stop_words:
+        lines = stop_words.readlines()
+
+        for line in lines:
+            clean_line = strip_symbols(line)
+            stop_list.append(clean_line)
+
+    with open(added_stop_words_path, 'r') as added_stop_words:
+        lines = added_stop_words.readlines()
+
+        for line in lines:
+            clean_line = strip_symbols(line)
+            stop_list.append(clean_line)
+            
+    return stop_list
+
+def reformat_text(inputText):
+    new_text = ""
+
+    for word in inputText:
+        new_text += word + " "
+
+    return new_text[:-1]
+
+def remove_stop_words(inputText, stop_words):
+    return [x for x in inputText if x not in stop_words]
+    
+def clean_text(inputText):
+
+    symbols = ["\n", "\r", ",", ".", "[", "]", "(", ")", "?", "'", '"', '&', '-', '/']
+
+    for s in symbols:
+        inputText = inputText.replace(s, "")
+
+    inputText = inputText.lower()
+    inputText = inputText.split()
+
+    return inputText
+
+def strip_symbols(inputText):
+
+    symbols = ["\n", "\r", ",", "[", "]", "(", ")", "?"]
+
+    for s in symbols:
+        inputText = inputText.replace(s, "")
+
+    return inputText
+
+def makeNewFolder(newFolderPath):
+    try:
+        os.mkdir(newFolderPath)
+    except:
+        if path.exists(newFolderPath):
+            parts = newFolderPath.split("\\")
+            print(f"\t# {parts[-1]} already exists.")
+        else:
+            print(f"\t# Cound not create folder: {newFolderPath}")
+
+
+
+
+if __name__ == "__main__":
+    main()
+    
